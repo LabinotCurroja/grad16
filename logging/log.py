@@ -20,7 +20,7 @@ class Logger:
     def info(self, message):
         print(f"{colors['blue']}[INFO] {self.name}: {message}{colors['end']}")
 
-    def error(self, message):
+    def FATAL(self, message):
         print(f"{colors['red']}[ERROR] {self.name}: {message}{colors['end']}")
 
     def warn(self, message):
