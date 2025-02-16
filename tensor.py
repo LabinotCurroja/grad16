@@ -40,8 +40,6 @@ class Tensor:
         """Convert data to a raw C-style array for CUDA."""
         return (ctypes.c_ubyte * (len(self.data) * 2))(*b"".join(self.data))
 
-
-
     def __repr__(self):
         return f"Tensor(shape={self.shape}, length={self.length()}, type={self.type})"
 
