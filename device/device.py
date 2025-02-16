@@ -40,6 +40,10 @@ def cuda_free(data):
     status = cuda_lib.cuda_free(data)
     return status
 
-def cuda_memset(dst, src, size, kind):
+def cuda_memset(dst, src, size):
     status = cuda_lib.cuda_memcpy(dst, src, size, cudaMemcpyHostToDevice)
+    return status
+
+def cuda_memcopy(dst, src, size):
+    status = cuda_lib.cuda_memcpy(dst, src, size, cudaMemcpyDeviceToHost)
     return status
