@@ -84,15 +84,12 @@ class Tensor:
     def __repr__(self):
         """Return a string representation of the tensor."""
         if self.size_in_elements > 256:  # too large to render anyways
-            return f"Tensor(shape={self.shape}, size={self.size}, type={self.type}, memory={self.size * 2} bytes)"
+            return f"Tensor(shape={self.shape}, size={self.size_in_elements}, type={self.type}, memory={self.size_in_bytes / 1048576:.2f} MB)"
         
         # Get tensor data from the CPU (flattened array)
         cdata = self.CPU()  # Assuming this returns a flat array-like structure
         tensor_values = cdata
         rows = []
-
-        print(f"Length of tensor_values: {len(tensor_values) * 2}")
-        print(tensor_values)
 
         # Loop over rows
         for i in range(self.shape[0]):
@@ -115,3 +112,25 @@ class Tensor:
             status = cuda_free(self.gpu_data)
             if status != 0:
                 raise RuntimeError("Failed to free GPU memory")
+            
+
+    def __mul__(self, other):
+        """Element-wise multiplication of two tensors."""
+        if self.shape != other.shape:
+            raise ValueError("Shapes do not match")
+        
+        # Get tensor data from the CPU (flattened array)
+        cdata1 = self.CPU() 
+        cdata2 = other.CPU()
+        result = [a * b for a, b in zip(cdata1, cdata2)]
+
+
+    def __matmul__(self, other):
+        """ Matrix multiplication using the kernel. """
+        assert isinstance(other, Tensor), "Matrix multiplication requires a Tensor"
+        assert self.shape[-1] == other.shape[0], "Incompatible shapes for matmul"
+
+        result_shape = (self.shape[0], other.shape[1])
+        #result_gpu = torch.matmul(self.gpu_data, other.gpu_data)
+
+        return Tensor(result_shape, values=result_gpu)

@@ -28,10 +28,10 @@ def main():
         return
     
     logger.info("CUDA device supports fp16.")
-    logger.info("Using GPU device: 0")
+    logger.info("Using GPU device: [0]")
 
 
-    tensor = Tensor((8, 8))
+    tensor = Tensor((40000, 40000))
 
 
     logger.info(tensor, 'red')
