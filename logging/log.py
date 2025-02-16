@@ -17,8 +17,8 @@ class Logger:
         self.name  = name
         self.debug = debug 
 
-    def info(self, message):
-        print(f"{colors['blue']}[INFO] {self.name}: {message}{colors['end']}")
+    def info(self, message, color='blue'):
+        print(f"{colors[color]}[INFO][{self.name}]: {message}{colors['end']}")
 
     def FATAL(self, message):
         print(f"{colors['red']}[ERROR] {self.name}: {message}{colors['end']}")

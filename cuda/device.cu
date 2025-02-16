@@ -69,6 +69,27 @@ extern "C"
         return status;
     }
 
+    float gpu_memory_usage()
+    {
+        size_t freeMem, totalMem;
+        cudaError_t err = cudaMemGetInfo(&freeMem, &totalMem);
+        
+        if (err != cudaSuccess)
+        {
+            return -1;
+        }
+
+        size_t usedMem = totalMem - freeMem;
+
+
+        float usedMemory = usedMem / (1024 * 1024);
+        return usedMemory;
+
+        //std::cout << "Total Memory: " << totalMem / (1024 * 1024) << " MB" << std::endl;
+        //std::cout << "Free Memory: " << freeMem / (1024 * 1024) << " MB" << std::endl;
+        //std::cout << "Used Memory: " << usedMem / (1024 * 1024) << " MB" << std::endl;
+    }
+
 
 
 }

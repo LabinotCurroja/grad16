@@ -31,7 +31,6 @@ class Tensor:
         """Copy data from GPU to CPU and unpack it into a list of Python floats."""
         # Allocate a byte array to hold the data copied from the GPU
         cpu_data_bytes = (ctypes.c_uint8 * self.size )()  # Use uint8 for raw bytes
-        print(cpu_data_bytes)
         
         # Copy data from GPU to CPU
         cuda_memcopy(cpu_data_bytes, self.gpu_data, self.size)
@@ -85,17 +84,17 @@ class Tensor:
             return f"Tensor(shape={self.shape}, size={self.size}, type={self.type})"
         
         cdata         = self.CPU()
-        tensor_values = cdata  # Assuming you have a `values` attribute or method that holds the tensor data
+        tensor_values = cdata  
         rows          = []
         
-        # Assuming `self.shape[0]` is the number of rows and `self.shape[1]` is the number of columns
         for i in range(self.shape[0]):
-            row = tensor_values[i * self.shape[1] : (i + 1) * self.shape[1]]
-            rows.append(" ".join(map(str, row)))
+            for j in range(self.shape[1]):
+                val = tensor_values[i * self.shape[1] + j]
+                rows.append(f"  {val:.1f}")
         
         # Format the matrix representation
         matrix_str = "\n".join(rows)
-        return f"Tensor(shape={self.shape}, size={self.size}, type={self.type}, values=\n{matrix_str})"
+        return f"Tensor shape={self.shape}, size={self.size}, type={self.type}, values=\n[\n{matrix_str}\n]"
 
 
     def __del__(self):
