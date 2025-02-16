@@ -43,6 +43,8 @@ class Tensor:
     def __repr__(self):
         return f"Tensor(shape={self.shape}, length={self.length()}, type={self.type})"
 
+
+
 # Example Usage
 tensor = Tensor((2, 2), [1.5, 2.3, 3.7, 4.1])
 print(tensor)
