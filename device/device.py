@@ -25,6 +25,12 @@ cuda_lib.cuda_memcpy.restype  = ctypes.c_int
 cuda_lib.gpu_memory_usage.restype = ctypes.c_float
 
 
+# Specify the return type of the function @gpu_memory_total
+cuda_lib.gpu_memory_total.restype = ctypes.c_float
+
+# Specify the return type of the function @gpu_memory_free
+cuda_lib.gpu_memory_free.restype = ctypes.c_float
+
 cudaMemcpyHostToDevice = 1
 cudaMemcpyDeviceToHost = 2
 
@@ -56,3 +62,9 @@ def cuda_memcopy(dst, src, size):
 
 def gpu_memory_allocated():
     return cuda_lib.gpu_memory_usage()
+
+def gpu_memory_total():
+    return cuda_lib.gpu_memory_total()
+
+def gpu_memory_available():
+    return cuda_lib.gpu_memory_free()

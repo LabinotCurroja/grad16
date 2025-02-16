@@ -6,7 +6,7 @@ sys.dont_write_bytecode = True
 
 
 
-from device.device import fp16_support, is_gpu_available, gpu_memory_allocated
+from device.device import fp16_support, is_gpu_available, gpu_memory_allocated, gpu_memory_available, gpu_memory_total
 from tensor import Tensor
 from logging.log import Logger
 
@@ -23,21 +23,21 @@ def main():
     
     logger.info("CUDA device is available.")
 
-
     if not fp16_support():
         logger.FATAL("CUDA device does not support fp16.")
         return
     
     logger.info("CUDA device supports fp16.")
+    logger.info("Using GPU device: 0")
 
 
-    tensor = Tensor((2, 3), [1.5, 2.3, 4.1,
-                             3.7, 4.1, 6.3])
+    tensor = Tensor((8, 8))
 
 
     logger.info(tensor, 'red')
-
-    logger.info(f"GPU memory allocated: {gpu_memory_allocated()}", 'green')
+    logger.info(f"GPU memory allocated : {gpu_memory_allocated()} MB")
+    logger.info(f"GPU memory available : {gpu_memory_available()} MB")
+    logger.info(f"GPU memory total     : {gpu_memory_total()} MB")
 
 if __name__ == "__main__":
     main()
