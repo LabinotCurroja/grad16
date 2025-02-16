@@ -11,6 +11,8 @@ from tensor import Tensor
 from logging.log import Logger
 
 
+DEVICE = 0 # GPU device ID - set for later in a smarter way. 
+
 
 def main():
     logger = Logger("Grad16", debug=True)
@@ -29,8 +31,8 @@ def main():
     logger.info("CUDA device supports fp16.")
 
 
-    tensor = Tensor((2, 2), [1.5, 2.3,
-                             3.7, 4.1])
+    tensor = Tensor((2, 3), [1.5, 2.3, 4.1,
+                             3.7, 4.1, 6.3])
 
 
     logger.info(tensor, 'red')

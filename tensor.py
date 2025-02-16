@@ -72,25 +72,24 @@ class Tensor:
         prod = 1
         for dim in self.shape:
             prod *= dim
-        return prod * 2
-
-    def _to_c_array(self):
-        """Convert data to a raw C-style array for CUDA."""
-        return (ctypes.c_ubyte * (len(self.data) * 2))(*b"".join(self.data))
+        return prod * 2  # fp16 values are 2 bytes each
 
     def __repr__(self):
         """Return a string representation of the tensor."""
-        if self.size > 32: # too large to render anyways. 
+        if self.size > 32:  # too large to render anyways.
             return f"Tensor(shape={self.shape}, size={self.size}, type={self.type})"
         
-        cdata         = self.CPU()
-        tensor_values = cdata  
-        rows          = []
-        
+        cdata = self.CPU()
+        tensor_values = cdata
+        rows = []
+
+        # Loop over rows
         for i in range(self.shape[0]):
+            row_values = []  # Collect values for each row
             for j in range(self.shape[1]):
                 val = tensor_values[i * self.shape[1] + j]
-                rows.append(f"  {val:.1f}")
+                row_values.append(f"{val:.1f}")  # Format value with one decimal
+            rows.append("  " + " ".join(row_values))  # Join values with space for the row
         
         # Format the matrix representation
         matrix_str = "\n".join(rows)
