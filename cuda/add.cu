@@ -47,4 +47,5 @@ extern "C" void add(half* A, half* B, float* C, int M, int N)
     
     add_kernel<<<gridDim, blockDim>>>(A, B, C, M, N);
     cudaDeviceSynchronize();
+
 }

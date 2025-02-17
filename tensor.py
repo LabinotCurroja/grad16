@@ -50,8 +50,12 @@ class Tensor:
         if values:
             self.GPU(values)
 
-    def CPU(self):
+    def CPU(self, pointer=None):
         """Copy data from GPU to CPU and unpack it into a list of Python floats. - Should probably never be used in practice other than debugging."""
+
+        if pointer is None:
+            pointer = self.gpu_data
+
         # Allocate a byte array to hold the data copied from the GPU
         cpu_data_bytes = (ctypes.c_uint8 * self.size_in_bytes )()  # Use uint8 for raw bytes
         
@@ -135,7 +139,7 @@ class Tensor:
         
         # Format the matrix representation
         matrix_str = "\n".join(rows)
-        return f"Tensor(shape={self.shape}, size={self.size_in_elements}, type={self.type}, memory={self.size_in_bytes} bytes\n[\n{matrix_str}\n]"
+        return f"Tensor(shape={self.shape}, size={self.size_in_elements}, type={self.type}, memory={self.size_in_bytes} op={self.op} requires_grad={self.requires_grad} bytes\n[\n{matrix_str}\n]"
 
     def __del__(self):
         """Free GPU memory when the tensor is deleted."""
@@ -175,29 +179,24 @@ class Tensor:
         T = Tensor(result_shape, requires_grad=self.requires_grad or other.requires_grad, op='matmul', parents=(self, other))
         T.GPU(C.CPU())
 
-        # Define the function that computes the gradients
+        # Define the     function that computes the gradients
         def matmul_backward(grad):
-            # Backpropagate gradients to parents using chain rule
-            # For matmul, the gradients are the following:
-            # Gradients w.r.t. self and other
-
-            # memory management: 
+            """
+            Backpropagate gradients for matrix multiplication.
+            Gradients w.r.t. self and other:
+            - grad_self: grad @ other^T
+            - grad_other: self^T @ grad
+            """
+            # Transpose matrices for gradient computation
             t_other    = other.T()
             t_self     = self.T()
-            gwr_self   = TensorResult((self.shape[1], self.shape[0]))
-            gwr_other  = TensorResult((other.shape[1], other.shape[0]))
 
+            # Initialize the tensors to hold the gradient results
+            grad_self  = TensorResult((self.shape[1], self.shape[0]))  # Gradient with respect to self (left matrix)
+            grad_other = TensorResult((other.shape[1], other.shape[0]))  # Gradient with respect to other (right matrix)
 
-            grad_self  = matmul(grad.gpu_data, t_other.gpu_data, gwr_self.gpu_data, self.shape[0], other.shape[1], self.shape[1])
-            grad_other = matmul(t_self.gpu_data, grad.gpu_data, gwr_other.gpu_data, self.shape[1], self.shape[0], other.shape[1])
+            return (None, None)
 
-            # memory management 
-            del t_other
-            del t_self
-            del gwr_self
-            del gwr_other
-
-            return (grad_self, grad_other)
 
         # Assign the backward function to the operation
         T.grad_fn = matmul_backward
@@ -205,12 +204,33 @@ class Tensor:
         del C
         return T
 
+    def grads(self):
+        """Return the gradient of the tensor."""
+        return self.CPU(self.grad)
+
+    def zero_grad(self):
+        self.GPU([0.0] * self.size_in_elements, self.grad)
+
+
+    def backward(self, grad=None):
+        """Backpropagate the gradient through the computation graph."""
+        if grad is None:
+            self.GPU([1.0] * self.size_in_elements, self.grad)
+    
+        grad_self, grad_other = self.grad_fn(grad)
+
+        if self.requires_grad:
+            self.grad.GPU(grad_self)
+
+        for i, parent in enumerate(self.parents):
+            if parent.requires_grad:
+                grad_output = self.compute_grad(parent, grad_other)
+                parent.backward(grad_output)
+
 
 
     def compute_grad(self, parent, grad_output):
         """Compute the gradient for a parent tensor."""
-        # This will be operation-dependent, and you should define how gradients
-        # are computed for each operation type (matmul, addition, etc.).
         if parent.op == "matmul":
             return self.matmul_grad(parent, grad_output)
         # Add logic for other operations like addition, etc.
@@ -234,9 +254,9 @@ class Tensor:
         result_shape = self.shape
         C = TensorResult(result_shape)
 
-        add(self.gpu_data, other.gpu_data, C.gpu_data, self.shape[0], self.shape[1], 1)
+        add(self.gpu_data, other.gpu_data, C.gpu_data, self.shape[0], self.shape[1])
 
-        T = Tensor(result_shape)
+        T = Tensor(result_shape, requires_grad=self.requires_grad or other.requires_grad, op='add', parents=(self, other))
         T.GPU(C.CPU())
 
         del C
@@ -324,7 +344,6 @@ class TensorResult(Tensor):
         return f"TensorResult(shape={self.shape}, size={self.size_in_elements}, type={self.type}, memory={self.size_in_bytes} bytes\n[\n{matrix_str}\n])"
     
     def __del__(self):
-        print("calling tensor result destructor")
         """Free GPU memory when the tensor is deleted."""
         if self.gpu_data:
             status = cuda_free(self.gpu_data)

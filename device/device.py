@@ -56,8 +56,7 @@ cuda_add.add.argtypes = [
     ctypes.c_void_p,  # b (GPU pointer)
     ctypes.c_void_p,  # c (GPU pointer)
     ctypes.c_int,     # M
-    ctypes.c_int,     # N
-    ctypes.c_int      # K
+    ctypes.c_int      # N
 ]
 cuda_add.add.restype = None  # No return value
 
@@ -116,8 +115,8 @@ def gpu_memory_available():
 def matmul(a, b, c, M, N, K):
     cuda_kernels.matmul(a, b, c, M, N, K)
 
-def add(a, b, c, M, N, K):
-    cuda_add.add(a, b, c, M, N, K)
+def add(a, b, c, M, N):
+    cuda_add.add(a, b, c, M, N)
 
 def transpose(a, b, rows, cols):
     cuda_transpose.transpose(a, b, rows, cols)

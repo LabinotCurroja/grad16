@@ -4,35 +4,32 @@
     Basically this class is what users use only. 
 """
 
-from .tensor import Tensor
+from tensor import Tensor
+from device.device import fp16_support, is_gpu_available, gpu_memory_allocated, gpu_memory_available, gpu_memory_total
+import random
 
 
 
 class QuantumGrad:
-    def __init__(self):
-        # we check here for the device, and if it is available.
-        pass
-
-    def zeros(self, shape):
+    def zeros(shape):
         """Create a tensor filled with zeros."""
         return Tensor(shape)
     
-    def ones(self, shape):
+    def ones(shape):
         """Create a tensor filled with ones."""
         t = Tensor(shape)
         t.fill(1)
         return t
     
-    def randn(self, shape):
+    def randn(shape):
         """Create a tensor filled with random numbers."""
         t = Tensor(shape)
+        r = [random.gauss(0, 1) for _ in range(shape[1]) for _ in range(shape[0])]
+        t.GPU(r)
+        del r
         return t 
 
-    def Tensor(self, shape):
-        """Create a tensor."""
-        return Tensor(shape)
-    
-    def matmul(self, a, b):
+    def matmul(a, b):
         """Matrix multiplication."""
         return a.matmul(b)
 
