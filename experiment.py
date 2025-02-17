@@ -41,10 +41,10 @@ def main():
     t1 = Tensor((16, 16))
     t2 = Tensor((16, 16))
 
-    t1.fill(0.4)
-    t2.fill(5)
+    t1.fill(2)
+    t2.fill(4)
 
-    t3 = t1 * (t2)
+    t3 = t1 + (t2)
     print(t3)
 
     del t1 

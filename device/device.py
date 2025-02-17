@@ -4,6 +4,7 @@ import ctypes
 
 cuda_lib     = ctypes.CDLL("./bin/device.so")
 cuda_kernels = ctypes.CDLL("./bin/matmul.so")
+cuda_add     = ctypes.CDLL("./bin/add.so")
 
 
 """ bindings for CUDA functions """
@@ -48,6 +49,15 @@ cuda_kernels.matmul.argtypes = [
 cuda_kernels.matmul.restype = None  # No return value
 
 
+cuda_add.add.argtypes = [
+    ctypes.c_void_p,  # a (GPU pointer)
+    ctypes.c_void_p,  # b (GPU pointer)
+    ctypes.c_void_p,  # c (GPU pointer)
+    ctypes.c_int,     # M
+    ctypes.c_int,     # N
+    ctypes.c_int      # K
+]
+cuda_add.add.restype = None  # No return value
 
 
 cudaMemcpyHostToDevice = 1
@@ -91,3 +101,6 @@ def gpu_memory_available():
 
 def matmul(a, b, c, M, N, K):
     cuda_kernels.matmul(a, b, c, M, N, K)
+
+def add(a, b, c, M, N, K):
+    cuda_add.add(a, b, c, M, N, K)

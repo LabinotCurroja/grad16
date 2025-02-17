@@ -1,6 +1,6 @@
 import struct
 import ctypes
-from device.device import cuda_malloc, cuda_free, cuda_memset, cuda_memcopy, cudaMemcpyHostToDevice, cudaMemcpyDeviceToHost, matmul
+from device.device import cuda_malloc, cuda_free, cuda_memset, cuda_memcopy, cudaMemcpyHostToDevice, cudaMemcpyDeviceToHost, matmul, add
 from cuda.cuda import cudaStatus
 
 
@@ -156,6 +156,30 @@ class Tensor:
         del C
         return T
 
+    def __add__(self, other):
+        """Element-wise addition of two tensors."""
+        if self.shape != other.shape:
+            raise ValueError("Shapes do not match")
+        assert isinstance(other, Tensor), "Element-wise addition requires a Tensor"
+
+        out = self.add(other)
+        return out
+    
+    def add(self, other):
+        """ Element-wise addition using the kernel. """
+        assert isinstance(other, Tensor), "Element-wise addition requires a Tensor"
+        assert self.shape == other.shape, "Incompatible shapes for addition"
+
+        result_shape = self.shape
+        C = TensorResult(result_shape)
+
+        add(self.gpu_data, other.gpu_data, C.gpu_data, self.shape[0], self.shape[1], 1)
+
+        T = Tensor(result_shape)
+        T.GPU(C.CPU())
+
+        del C
+        return T
 
 
 
