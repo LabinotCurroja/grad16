@@ -33,15 +33,22 @@ def main():
     # now we just need to fill the tensors.
     tx = TensorResult((16, 16))
 
-    t1 = Tensor((4, 4))
-    t2 = Tensor((4, 4))
+    t1 = Tensor((16, 16))
+    t2 = Tensor((16, 16))
 
     t1.fill(1)
     t2.fill(2)
 
     t3 = t1.matmul(t2)
-    print(t3)
 
+    #print(t1)
+    #print(t2)
+    #print(t3)
+
+    del t1 
+    del t2
+    del t3
+    del tx
     #logger.info(tensor, 'red')
     logger.info(f"GPU memory allocated : {gpu_memory_allocated()} MB")
     logger.info(f"GPU memory available : {gpu_memory_available()} MB")

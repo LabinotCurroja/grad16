@@ -144,7 +144,13 @@ class Tensor:
 
         result_shape = (self.shape[0], other.shape[1])
         C = TensorResult(result_shape)
+
         matmul(self.gpu_data, other.gpu_data, C.gpu_data, self.shape[0], other.shape[1], self.shape[1])
+
+
+        result = C.CPU()
+        print(result)
+
         return C
 
 
@@ -173,13 +179,33 @@ class TensorResult(Tensor):
             raise RuntimeError("Failed to allocate GPU memory ", cudaStatus[status])
         return data 
     
+
+    def CPU(self):
+        """Copy data from GPU to CPU and unpack it into a list of Python floats (32-bit)."""
+        # Allocate a byte array to hold the data copied from the GPU
+        cpu_data_bytes = (ctypes.c_uint8 * self.size_in_bytes)()  # Use uint8 for raw bytes
+        
+        # Copy data from GPU to CPU
+        cuda_memcopy(cpu_data_bytes, self.gpu_data, self.size_in_bytes)
+        
+        # Unpack the byte array into a list of float32 values
+        cpu_data = []
+        for i in range(0, self.size_in_bytes, 4):  # float32 values are 4 bytes each
+            # Extract 4 bytes for each float32 value
+            float32_bytes = bytes(cpu_data_bytes[i:i+4])  # Convert to bytes
+            # Unpack the bytes into a Python float32 (float)
+            float32_value = struct.unpack('f', float32_bytes)[0]
+            cpu_data.append(float32_value)
+        
+        return cpu_data
+
     def elements_count(self):
         """Return the number of elements in the tensor."""
         prod = 1
         for dim in self.shape:
             prod *= dim
-        return prod  # fp16 values are 2 bytes each
-
+        return prod  
+    
     def size_in_bytes(self):
         """Return the size of the tensor in bytes."""
         return self.elements_count() * 4  # fp32 values are 4 bytes each
