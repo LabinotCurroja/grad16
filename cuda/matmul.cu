@@ -54,5 +54,5 @@ extern "C" void matmul(half* A, half* B, float* C, int M, int N, int K)
     dim3 gridDim((N + WMMA_N - 1) / WMMA_N, (M + WMMA_M - 1) / WMMA_M);
     dim3 blockDim(32, 1,1);
     matmul_kernel<<<gridDim, blockDim>>>(A, B, C, M, N, K);
-    cudaDeviceSynchronize();
+    cudaDeviceSynchronize(); 
 }

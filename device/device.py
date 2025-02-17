@@ -2,10 +2,10 @@
 
 import ctypes
 
-cuda_lib     = ctypes.CDLL("./bin/device.so")
-cuda_kernels = ctypes.CDLL("./bin/matmul.so")
-cuda_add     = ctypes.CDLL("./bin/add.so")
-
+cuda_lib           = ctypes.CDLL("./bin/device.so")
+cuda_kernels       = ctypes.CDLL("./bin/matmul.so")
+cuda_add           = ctypes.CDLL("./bin/add.so")
+cuda_transpose     = ctypes.CDLL("./bin/transpose.so")
 
 """ bindings for CUDA functions """
 
@@ -37,6 +37,8 @@ cuda_lib.gpu_memory_total.restype = ctypes.c_float
 cuda_lib.gpu_memory_free.restype = ctypes.c_float
 
 
+
+
 """ arithmetics for CUDA kernels - move this to another file later for better organization """
 cuda_kernels.matmul.argtypes = [
     ctypes.c_void_p,  # a (GPU pointer)
@@ -58,6 +60,18 @@ cuda_add.add.argtypes = [
     ctypes.c_int      # K
 ]
 cuda_add.add.restype = None  # No return value
+
+
+
+cuda_transpose.transpose.argtypes = [
+    ctypes.c_void_p,  # a (GPU pointer)
+    ctypes.c_void_p,  # b (GPU pointer)
+    ctypes.c_int,     # rows
+    ctypes.c_int      # cols
+]
+cuda_transpose.transpose.restype = None  # No return value
+
+
 
 
 cudaMemcpyHostToDevice = 1

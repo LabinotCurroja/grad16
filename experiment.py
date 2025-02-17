@@ -38,13 +38,13 @@ def main():
     # now we just need to fill the tensors.
     tx = TensorResult((16, 16))
 
-    t1 = Tensor((16, 16))
-    t2 = Tensor((16, 16))
+    t1 = Tensor((16, 16), requires_grad=True)
+    t2 = Tensor((16, 16), requires_grad=True)
 
-    t1.fill(2)
-    t2.fill(4)
+    t1.fill(1)
+    t2.fill(3)
 
-    t3 = t1 + (t2)
+    t3 = t1 * t2
     print(t3)
 
     del t1 

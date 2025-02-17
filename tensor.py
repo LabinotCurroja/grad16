@@ -25,7 +25,7 @@ from cuda.cuda import cudaStatus
 
 
 class Tensor:
-    def __init__(self, shape, values=None):
+    def __init__(self, shape, values=None, requires_grad=False, op=None, parents=()):
         self.shape                 = shape
         self.data                  = []
         self.size_in_elements      = self.elements_count()
@@ -34,8 +34,16 @@ class Tensor:
         self.gpu_data              = None 
         self.cpu_data              = values
 
+        #DAG
+        self.grad                  = None  # Gradient storage
+        self.grad_fn               = None
+        self.op                    = op 
+        self.parents               = parents
+        self.requires_grad         = requires_grad
+
 
         self.gpu_data = self._alloc()
+        self.grad     = self._alloc()
 
         if values:
             self.GPU(values)
@@ -127,6 +135,11 @@ class Tensor:
             if status != 0:
                 raise RuntimeError("Failed to free GPU memory")
             
+        if self.grad:
+            status = cuda_free(self.grad)
+            if status != 0:
+                raise RuntimeError("Failed to free GPU memory")
+            
 
     def __mul__(self, other):
         """Element-wise multiplication of two tensors."""
@@ -150,11 +163,12 @@ class Tensor:
         matmul(self.gpu_data, other.gpu_data, C.gpu_data, self.shape[0], other.shape[1], self.shape[1])
 
         # we now need to create a tensor result class to store the result in FP16. 
-        T = Tensor(result_shape)
+        T = Tensor(result_shape, requires_grad=self.requires_grad or other.requires_grad, op='matmul', parents=(self, other))
         T.GPU(C.CPU())
 
         del C
         return T
+
 
     def __add__(self, other):
         """Element-wise addition of two tensors."""
@@ -180,6 +194,12 @@ class Tensor:
 
         del C
         return T
+
+
+    """ autograd dealings """
+
+    def backward(self):
+        return
 
 
 
@@ -260,3 +280,10 @@ class TensorResult(Tensor):
         # Format the matrix representation
         matrix_str = "\n".join(rows)
         return f"TensorResult(shape={self.shape}, size={self.size_in_elements}, type={self.type}, memory={self.size_in_bytes} bytes\n[\n{matrix_str}\n])"
+    
+    def __del__(self):
+        """Free GPU memory when the tensor is deleted."""
+        if self.gpu_data:
+            status = cuda_free(self.gpu_data)
+            if status != 0:
+                raise RuntimeError("Failed to free GPU memory")

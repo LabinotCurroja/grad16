@@ -46,4 +46,5 @@ extern "C" void add(half* A, half* B, float* C, int M, int N)
     dim3 gridDim((N + WMMA_N - 1) / WMMA_N, (M + WMMA_M - 1) / WMMA_M);  // Grid size based on tensor dimensions
     
     add_kernel<<<gridDim, blockDim>>>(A, B, C, M, N);
+    cudaDeviceSynchronize();
 }
