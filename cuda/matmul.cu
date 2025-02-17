@@ -9,12 +9,6 @@ using namespace nvcuda;
 
 
 
-// WMMA kernel: C = A * B
-#include <cuda_fp16.h>
-#include <cuda_runtime.h>
-#include <mma.h>
-
-
 
 #define WMMA_M 16
 #define WMMA_N 16

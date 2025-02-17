@@ -132,8 +132,10 @@ class Tensor:
         """Element-wise multiplication of two tensors."""
         if self.shape != other.shape:
             raise ValueError("Shapes do not match")
-        
-        # call self.matmul here. 
+        assert isinstance(other, Tensor), "Element-wise multiplication requires a Tensor"
+
+        out = self.matmul(other)
+        return out 
 
 
     def matmul(self, other):
@@ -147,17 +149,19 @@ class Tensor:
 
         matmul(self.gpu_data, other.gpu_data, C.gpu_data, self.shape[0], other.shape[1], self.shape[1])
 
+        # we now need to create a tensor result class to store the result in FP16. 
+        T = Tensor(result_shape)
+        T.GPU(C.CPU())
 
-        result = C.CPU()
-        print(result)
-
-        return C
+        del C
+        return T
 
 
 
 
 """ Tensor result class. As we need to accumulate the result of a matmul/* operation(s) in a FP32 to not lose the precision when calculating. Only after that, do we 
     convert the result back to FP16. 
+    It is an intermediate value that is used to store the result of a matmul operation, and immediately converted back to FP16 and deleted. 
 """
 
 class TensorResult(Tensor): 
