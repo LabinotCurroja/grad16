@@ -118,3 +118,6 @@ def matmul(a, b, c, M, N, K):
 
 def add(a, b, c, M, N, K):
     cuda_add.add(a, b, c, M, N, K)
+
+def transpose(a, b, rows, cols):
+    cuda_transpose.transpose(a, b, rows, cols)

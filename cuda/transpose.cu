@@ -27,7 +27,7 @@ __global__ void transpose_kernel(__half* input, __half* output, int rows, int co
     }
 }
 
-extern "C" void transpose_half(__half* input, __half* output, int rows, int cols) 
+extern "C" void transpose(__half* input, __half* output, int rows, int cols) 
 {
 
     dim3 block(TILE_SIZE, TILE_SIZE);

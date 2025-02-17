@@ -1,6 +1,6 @@
 import struct
 import ctypes
-from device.device import cuda_malloc, cuda_free, cuda_memset, cuda_memcopy, cudaMemcpyHostToDevice, cudaMemcpyDeviceToHost, matmul, add
+from device.device import cuda_malloc, cuda_free, cuda_memset, cuda_memcopy, cudaMemcpyHostToDevice, cudaMemcpyDeviceToHost, matmul, add, transpose
 from cuda.cuda import cudaStatus
 
 
@@ -35,7 +35,7 @@ class Tensor:
         self.cpu_data              = values
 
         #DAG
-        self.grad                  = None  # Gradient storage
+        self.grad                  = None  # Gradient storage in a Tensor
         self.grad_fn               = None
         self.op                    = op 
         self.parents               = parents
@@ -43,7 +43,9 @@ class Tensor:
 
 
         self.gpu_data = self._alloc()
-        self.grad     = self._alloc()
+
+        if(self.requires_grad):
+            self.grad     = self._alloc()
 
         if values:
             self.GPU(values)
@@ -72,14 +74,17 @@ class Tensor:
         cpu_data = [value] * self.size_in_elements
         self.GPU(cpu_data)
 
-    def GPU(self, values=None):
+    def GPU(self, values=None, pointer=None):
         """Copy values from CPU to GPU."""
         # Pack values into fp16 format
         if values:
             self.cpu_data = values
 
+        if pointer is None:
+            pointer = self.gpu_data
+
         packed_values = b''.join(struct.pack('e', v) for v in self.cpu_data)
-        cuda_memset(self.gpu_data, packed_values, self.size_in_bytes)   
+        cuda_memset(pointer, packed_values, self.size_in_bytes)   
 
         # always clear CPU data. We dont want to use memory there unless absolutely needed. 
         self.cpu_data = None
@@ -103,7 +108,11 @@ class Tensor:
         """Return the size of the tensor in bytes."""
         return self.elements_count() * 2  # fp16 values are 2 bytes each
 
-
+    def T(self):
+        """Transpose the tensor."""
+        T = Tensor((self.shape[1], self.shape[0]), requires_grad=self.requires_grad, op='transpose', parents=(self,))
+        transpose(self.gpu_data, T.gpu_data, self.shape[0], self.shape[1])
+        return T
 
     def __repr__(self):
         """Return a string representation of the tensor."""
@@ -166,8 +175,46 @@ class Tensor:
         T = Tensor(result_shape, requires_grad=self.requires_grad or other.requires_grad, op='matmul', parents=(self, other))
         T.GPU(C.CPU())
 
+        # Define the function that computes the gradients
+        def matmul_backward(grad):
+            # Backpropagate gradients to parents using chain rule
+            # For matmul, the gradients are the following:
+            # Gradients w.r.t. self and other
+
+            # memory management: 
+            t_other    = other.T()
+            t_self     = self.T()
+            gwr_self   = TensorResult((self.shape[1], self.shape[0]))
+            gwr_other  = TensorResult((other.shape[1], other.shape[0]))
+
+
+            grad_self  = matmul(grad.gpu_data, t_other.gpu_data, gwr_self.gpu_data, self.shape[0], other.shape[1], self.shape[1])
+            grad_other = matmul(t_self.gpu_data, grad.gpu_data, gwr_other.gpu_data, self.shape[1], self.shape[0], other.shape[1])
+
+            # memory management 
+            del t_other
+            del t_self
+            del gwr_self
+            del gwr_other
+
+            return (grad_self, grad_other)
+
+        # Assign the backward function to the operation
+        T.grad_fn = matmul_backward
+
         del C
         return T
+
+
+
+    def compute_grad(self, parent, grad_output):
+        """Compute the gradient for a parent tensor."""
+        # This will be operation-dependent, and you should define how gradients
+        # are computed for each operation type (matmul, addition, etc.).
+        if parent.op == "matmul":
+            return self.matmul_grad(parent, grad_output)
+        # Add logic for other operations like addition, etc.
+        return grad_output
 
 
     def __add__(self, other):
@@ -195,11 +242,6 @@ class Tensor:
         del C
         return T
 
-
-    """ autograd dealings """
-
-    def backward(self):
-        return
 
 
 
@@ -282,6 +324,7 @@ class TensorResult(Tensor):
         return f"TensorResult(shape={self.shape}, size={self.size_in_elements}, type={self.type}, memory={self.size_in_bytes} bytes\n[\n{matrix_str}\n])"
     
     def __del__(self):
+        print("calling tensor result destructor")
         """Free GPU memory when the tensor is deleted."""
         if self.gpu_data:
             status = cuda_free(self.gpu_data)

@@ -44,7 +44,7 @@ def main():
     t1.fill(1)
     t2.fill(3)
 
-    t3 = t1 * t2
+    t3 = t1 * t2    
     print(t3)
 
     del t1 
