@@ -5,6 +5,7 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
+using namespace nvcuda;
 
 
 #define WMMA_M 16
@@ -45,4 +46,13 @@ __global__ void matmul_kernel(const __half *a, const __half *b, float *c, int M,
     // Store the result back to global memory.
     float* cTile = c + tile_row * WMMA_T * N + tile_col * WMMA_T;
     wmma::store_matrix_sync(cTile, cFrag, N, wmma::mem_row_major);
+}
+
+
+extern "C" void matmul(half* A, half* B, float* C, int M, int N, int K) 
+{
+    dim3 gridDim(1, 1);
+    dim3 blockDim(32, 1,1);
+    matmul_kernel<<<gridDim, blockDim>>>(A, B, C, M, N, K);
+    cudaDeviceSynchronize();
 }

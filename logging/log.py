@@ -18,10 +18,10 @@ class Logger:
         self.debug = debug 
 
     def info(self, message, color='blue'):
-        print(f"{colors[color]}[INFO][{self.name}]: {message}{colors['end']}")
+        print(f"{colors[color]}{self.name}::INFO: {message}{colors['end']}")
 
     def FATAL(self, message):
-        print(f"{colors['red']}[ERROR] {self.name}: {message}{colors['end']}")
+        print(f"{colors['red']}{self.name}::ERRO: {message}{colors['end']}")
 
     def warn(self, message):
         print(f"{colors['yellow']}[WARN] {self.name}: {message}{colors['end']}")

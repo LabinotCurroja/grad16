@@ -1,16 +1,28 @@
 import struct
 import ctypes
-from device.device import cuda_malloc, cuda_free, cuda_memset, cuda_memcopy, cudaMemcpyHostToDevice, cudaMemcpyDeviceToHost
+from device.device import cuda_malloc, cuda_free, cuda_memset, cuda_memcopy, cudaMemcpyHostToDevice, cudaMemcpyDeviceToHost, matmul
 from cuda.cuda import cudaStatus
 
 
 """
-Tensor class using fp16 only. 
-- Using struct.pack('e', value) to store values in a list of bytes.
-- Always stores the data on the GPU using cudaMalloc. If we need it on the CPU, we can copy it back with cudaMemcpy.
+  Tensor class using fp16 only.  
+  Using struct.pack('e', value) to store values in a list of bytes.
+
+  Always stores the data on the GPU using cudaMalloc. If we need it on the CPU, we can copy it back with cudaMemcpy.
   Basically we dont have GPU() in our framework, as we always store the data on the GPU. 
-  What we do have is CPU() to copy the data back to the CPU.
+  What we do have is CPU() to copy the data back to the CPU. - This allows us to show the tensor data in the __repr__ method.
+  Other than that, the data should never be manipulated on CPU. 
+
+  To compute the matmul operation for example, we need the accumulated result to be in FP32. This leads to higher precision. 
+  What we need to do is to create a TensorResult class that inherits from Tensor. This class will store the data in FP32.
+  We then convert the result back to FP16 after the computation is done with a TensorResult to Tensor conversion.
+
 """
+
+
+
+
+
 
 class Tensor:
     def __init__(self, shape, values=None):
@@ -29,7 +41,7 @@ class Tensor:
             self.GPU(values)
 
     def CPU(self):
-        """Copy data from GPU to CPU and unpack it into a list of Python floats."""
+        """Copy data from GPU to CPU and unpack it into a list of Python floats. - Should probably never be used in practice other than debugging."""
         # Allocate a byte array to hold the data copied from the GPU
         cpu_data_bytes = (ctypes.c_uint8 * self.size_in_bytes )()  # Use uint8 for raw bytes
         
@@ -46,8 +58,12 @@ class Tensor:
             cpu_data.append(fp16_value)
         
         return cpu_data
-        
-    
+
+    def fill(self, value):
+        """Fill the tensor with a single value."""
+        cpu_data = [value] * self.size_in_elements
+        self.GPU(cpu_data)
+
     def GPU(self, values=None):
         """Copy values from CPU to GPU."""
         # Pack values into fp16 format
@@ -104,8 +120,6 @@ class Tensor:
         matrix_str = "\n".join(rows)
         return f"Tensor(shape={self.shape}, size={self.size_in_elements}, type={self.type}, memory={self.size_in_bytes} bytes\n[\n{matrix_str}\n]"
 
-
-
     def __del__(self):
         """Free GPU memory when the tensor is deleted."""
         if self.gpu_data:
@@ -119,18 +133,76 @@ class Tensor:
         if self.shape != other.shape:
             raise ValueError("Shapes do not match")
         
-        # Get tensor data from the CPU (flattened array)
-        cdata1 = self.CPU() 
-        cdata2 = other.CPU()
-        result = [a * b for a, b in zip(cdata1, cdata2)]
+        # call self.matmul here. 
 
 
-    def __matmul__(self, other):
-        """ Matrix multiplication using the kernel. """
+    def matmul(self, other):
+        #@TODO: Implement batch operations
+        """ Matrix multiplication using the kernel. Does not yet support batch operations. """
         assert isinstance(other, Tensor), "Matrix multiplication requires a Tensor"
         assert self.shape[-1] == other.shape[0], "Incompatible shapes for matmul"
 
         result_shape = (self.shape[0], other.shape[1])
-        #result_gpu = torch.matmul(self.gpu_data, other.gpu_data)
+        C = TensorResult(result_shape)
+        matmul(self.gpu_data, other.gpu_data, C.gpu_data, self.shape[0], other.shape[1], self.shape[1])
+        return C
 
-        return Tensor(result_shape, values=result_gpu)
+
+
+
+""" Tensor result class. As we need to accumulate the result of a matmul/* operation(s) in a FP32 to not lose the precision when calculating. Only after that, do we 
+    convert the result back to FP16. 
+"""
+
+class TensorResult(Tensor): 
+    def __init__(self, shape):
+        self.data  = None
+        self.shape = shape
+        self.type  = 'fp32'
+        self.gpu_data = None 
+        self.size_in_bytes         = self.size_in_bytes()
+        self.size_in_elements      = self.elements_count()
+
+        self.gpu_data = self._alloc()
+
+    def _alloc(self):
+        """Allocate memory on the GPU using cudaMalloc, but this time in FP32"""
+        data   = ctypes.c_void_p()
+        status = cuda_malloc(ctypes.byref(data), self.size_in_bytes)
+        if status != 0:
+            raise RuntimeError("Failed to allocate GPU memory ", cudaStatus[status])
+        return data 
+    
+    def elements_count(self):
+        """Return the number of elements in the tensor."""
+        prod = 1
+        for dim in self.shape:
+            prod *= dim
+        return prod  # fp16 values are 2 bytes each
+
+    def size_in_bytes(self):
+        """Return the size of the tensor in bytes."""
+        return self.elements_count() * 4  # fp32 values are 4 bytes each
+    
+    def __repr__(self):
+        """Return a string representation of the tensor."""
+        if self.size_in_elements > 256:  # too large to render anyway
+            return f"TensorResult(shape={self.shape}, size={self.size_in_elements}, type={self.type}, memory={self.size_in_bytes / 1048576:.2f} MB)"
+        
+        # Get tensor data from the CPU (flattened array)
+        cdata = self.CPU()  # Assuming this returns a flat array-like structure
+        tensor_values = cdata
+        rows = []
+
+        # Loop over rows
+        for i in range(self.shape[0]):
+            row_values = []  # Collect values for each row
+            for j in range(self.shape[1]):
+                # Access the tensor element using the flattened index calculation
+                val = tensor_values[i * self.shape[1] + j]  
+                row_values.append(f"{val:.1f}")  # Format value with 4 decimal places for FP32
+            rows.append("  " + " ".join(row_values))  # Join values with space for the row
+        
+        # Format the matrix representation
+        matrix_str = "\n".join(rows)
+        return f"TensorResult(shape={self.shape}, size={self.size_in_elements}, type={self.type}, memory={self.size_in_bytes} bytes\n[\n{matrix_str}\n])"

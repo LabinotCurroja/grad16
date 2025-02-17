@@ -2,7 +2,11 @@
 
 import ctypes
 
-cuda_lib = ctypes.CDLL("./bin/device.so")
+cuda_lib     = ctypes.CDLL("./bin/device.so")
+cuda_kernels = ctypes.CDLL("./bin/matmul.so")
+
+
+""" bindings for CUDA functions """
 
 # Specify the return type of the function @supportf16 && @is_gpu_available 
 cuda_lib.supportf16.restype       = ctypes.c_bool
@@ -31,10 +35,26 @@ cuda_lib.gpu_memory_total.restype = ctypes.c_float
 # Specify the return type of the function @gpu_memory_free
 cuda_lib.gpu_memory_free.restype = ctypes.c_float
 
+
+""" arithmetics for CUDA kernels - move this to another file later for better organization """
+cuda_kernels.matmul.argtypes = [
+    ctypes.c_void_p,  # a (GPU pointer)
+    ctypes.c_void_p,  # b (GPU pointer)
+    ctypes.c_void_p,  # c (GPU pointer)
+    ctypes.c_int,     # M
+    ctypes.c_int,     # N
+    ctypes.c_int      # K
+]
+cuda_kernels.matmul.restype = None  # No return value
+
+
+
+
 cudaMemcpyHostToDevice = 1
 cudaMemcpyDeviceToHost = 2
 
 
+""" wrappers for CUDA functions """
 
 def fp16_support():
     return cuda_lib.supportf16()
@@ -68,3 +88,6 @@ def gpu_memory_total():
 
 def gpu_memory_available():
     return cuda_lib.gpu_memory_free()
+
+def matmul(a, b, c, M, N, K):
+    cuda_kernels.matmul(a, b, c, M, N, K)

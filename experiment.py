@@ -7,7 +7,7 @@ sys.dont_write_bytecode = True
 
 
 from device.device import fp16_support, is_gpu_available, gpu_memory_allocated, gpu_memory_available, gpu_memory_total
-from tensor import Tensor
+from tensor import Tensor, TensorResult
 from logging.log import Logger
 
 
@@ -30,11 +30,19 @@ def main():
     logger.info("CUDA device supports fp16.")
     logger.info("Using GPU device: [0]")
 
+    # now we just need to fill the tensors.
+    tx = TensorResult((16, 16))
 
-    tensor = Tensor((40000, 40000))
+    t1 = Tensor((4, 4))
+    t2 = Tensor((4, 4))
 
+    t1.fill(1)
+    t2.fill(2)
 
-    logger.info(tensor, 'red')
+    t3 = t1.matmul(t2)
+    print(t3)
+
+    #logger.info(tensor, 'red')
     logger.info(f"GPU memory allocated : {gpu_memory_allocated()} MB")
     logger.info(f"GPU memory available : {gpu_memory_available()} MB")
     logger.info(f"GPU memory total     : {gpu_memory_total()} MB")
