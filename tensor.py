@@ -156,8 +156,7 @@ class Tensor:
 
     def __mul__(self, other):
         """Element-wise multiplication of two tensors."""
-        if self.shape != other.shape:
-            raise ValueError("Shapes do not match")
+        assert self.shape[-1] == other.shape[0], "Incompatible shapes for matmul"
         assert isinstance(other, Tensor), "Element-wise multiplication requires a Tensor"
 
         out = self.matmul(other)
@@ -175,7 +174,7 @@ class Tensor:
 
         matmul(self.gpu_data, other.gpu_data, C.gpu_data, self.shape[0], other.shape[1], self.shape[1])
 
-        # we now need to create a tensor result class to store the result in FP16. 
+        # we now need to create a tensor result  class to store the result in FP16. 
         T = Tensor(result_shape, requires_grad=self.requires_grad or other.requires_grad, op='matmul', parents=(self, other))
         T.GPU(C.CPU())
 
@@ -239,8 +238,6 @@ class Tensor:
 
     def __add__(self, other):
         """Element-wise addition of two tensors."""
-        if self.shape != other.shape:
-            raise ValueError("Shapes do not match")
         assert isinstance(other, Tensor), "Element-wise addition requires a Tensor"
 
         out = self.add(other)

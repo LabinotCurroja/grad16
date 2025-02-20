@@ -51,6 +51,17 @@ cuda_kernels.matmul.argtypes = [
 cuda_kernels.matmul.restype = None  # No return value
 
 
+cuda_kernels.matmul_mini.argtypes = [
+    ctypes.c_void_p,  # a (GPU pointer)
+    ctypes.c_void_p,  # b (GPU pointer)
+    ctypes.c_void_p,  # c (GPU pointer)
+    ctypes.c_int,     # M
+    ctypes.c_int,     # N
+    ctypes.c_int      # K
+]
+cuda_kernels.matmul_mini.restype = None  # No return value
+
+
 cuda_add.add.argtypes = [
     ctypes.c_void_p,  # a (GPU pointer)
     ctypes.c_void_p,  # b (GPU pointer)
@@ -113,7 +124,12 @@ def gpu_memory_available():
     return cuda_lib.gpu_memory_free()
 
 def matmul(a, b, c, M, N, K):
-    cuda_kernels.matmul(a, b, c, M, N, K)
+
+    if (M % 16 == 0) and (N % 16 == 0) and (K % 16 == 0):
+        cuda_kernels.matmul(a, b, c, M, N, K)
+    else:
+        cuda_kernels.matmul_mini(a, b, c, M, N, K)
+    
 
 def add(a, b, c, M, N):
     cuda_add.add(a, b, c, M, N)

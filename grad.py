@@ -21,7 +21,7 @@ class QuantumGrad:
         t.fill(1)
         return t
     
-    def randn(shape):
+    def randf(shape):
         """Create a tensor filled with random numbers."""
         t = Tensor(shape)
         r = [random.gauss(0, 1) for _ in range(shape[1]) for _ in range(shape[0])]
